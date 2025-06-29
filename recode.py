@@ -79,8 +79,8 @@ def recode_with_ffmpeg(input_file, output_file, audio_bitrate="192k", scale=None
         start = time.time()
         subprocess.run(command, check=True)
         end = time.time()
-        elapsed_time = end - start
-        logger.info(f"Recoding complete: {elapsed_time.total_seconds()/60} minutes")
+        elapsed_time = format_time(end - start)
+        logger.info(f"Recoding completed in: {elapsed_time}")
     except subprocess.CalledProcessError as e:
         logger.error(f"Error during FFmpeg recoding for {input_file}:")
         logger.error(f"Command: {' '.join(e.cmd)}")
@@ -88,6 +88,15 @@ def recode_with_ffmpeg(input_file, output_file, audio_bitrate="192k", scale=None
     except FileNotFoundError:
         logger.error("Error: FFmpeg executable not found.")
         logger.error("Please ensure FFmpeg is installed and its executable is in your system's PATH.")
+
+def format_time(x):
+    elapsed_time = int(x)
+    hours = elapsed_time // 3600
+    minutes = (elapsed_time % 3600) // 60
+    seconds = elapsed_time % 60
+
+    elapsed_time_str = f"{hours:02}:{minutes:02}:{seconds:02}"
+    return elapsed_time_str
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Automate video recoding to MP4/AAC with FFmpeg.")
