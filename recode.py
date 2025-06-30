@@ -34,13 +34,13 @@ def recode_with_ffmpeg(input_file, output_file, audio_bitrate="192k", scale=None
         force_overwrite (bool): If True, overwrite output file without prompt.
     """
     if not os.path.exists(input_file):
-        logger.info(f"Error: Input file not found at {input_file}")
+        logger.error(f"Error: Input file not found at {input_file}")
         return
     
     # Check if input_file is a video file by extension
     video_extensions = ('.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv', '.webm', '.mpeg', '.mpg', '.m4v')
     if not input_file.lower().endswith(video_extensions):
-        logger.info(f"Skipped: {input_file} is not a recognized video file.")
+        logger.debug(f"Skipped: {input_file} is not a recognized video file.")
         return
 
 
