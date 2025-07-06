@@ -107,6 +107,8 @@ def parse_arguments():
                         help="Audio bitrate (e.g., '128k', '192k', '256k'). Default: 192k")
     parser.add_argument("--no-overwrite", action="store_false", dest="force_overwrite",
                         help="Do not overwrite output file if it exists (FFmpeg will prompt).")
+    parser.add_argument("--d", action="store_true", dest="delete_input",
+                        help="Delete source file when done.")
     args = parser.parse_args()
     return args
 
@@ -133,6 +135,7 @@ def validate_and_interpret_args(args):
     final_args["suffix"] = f"_{args.abr}"
     if args.scale is not None: final_args["suffix"] += f"_{args.scale}"
     final_args["force_overwrite"] = args.force_overwrite
+    final_args["delete"] = args.delete_input
     return final_args
 
 def get_output_file(input_file, suffix, target=None):
@@ -160,6 +163,25 @@ def get_output_file(input_file, suffix, target=None):
 
     return output_file
 
+
+def recode_video(file_in, file_out, abr, suffix, scale=None, force_overwrite=True, delete_input=False):
+    output_file = get_output_file(file_in, suffix, file_out)
+    recode_with_ffmpeg(
+        file_in,
+        output_file,
+        audio_bitrate=abr,
+        scale=scale,
+        force_overwrite=force_overwrite
+    )
+    if delete_input:
+        try:
+            os.remove(file_in)
+            logger.info(f"Deleted input file: {file_in}")
+        except Exception as e:
+            logger.error(f"Error deleting input file {file_in}: {e}")
+
+
+
 if __name__ == "__main__":
 
     args = parse_arguments()
@@ -168,27 +190,29 @@ if __name__ == "__main__":
 
     if os.path.isfile(args["in"]):
         logger.debug(f"Input is a file: {args['in']}")
-        output_file = get_output_file(args["in"], args["suffix"], args["out"])
-        recode_with_ffmpeg(
-            args["in"],
-            output_file,
-            args["abr"],
-            args["scale"],
-            force_overwrite=args["force_overwrite"]
-        )
+        recode_video(args["in"], args["out"], args["abr"], args["suffix"], args["scale"], args["force_overwrite"], args["delete"])
+        # output_file = get_output_file(args["in"], args["suffix"], args["out"])
+        # recode_with_ffmpeg(
+        #     args["in"],
+        #     output_file,
+        #     args["abr"],
+        #     args["scale"],
+        #     force_overwrite=args["force_overwrite"]
+        # )
     elif os.path.isdir(args["in"]):
         logger.debug(f"Input is a directory: {args['in']}")
         for file in os.listdir(args["in"]):
             file_path = os.path.join(args["in"], file)
             if os.path.isfile(file_path):
-                output_file = get_output_file(file_path, args["suffix"], args["out"])
-                recode_with_ffmpeg(
-                    file_path,
-                    output_file,
-                    audio_bitrate=args["abr"],
-                    scale=args["scale"],
-                    force_overwrite=args["force_overwrite"]
-                )        
+                recode_video(file_path, args["out"], args["abr"], args["suffix"], args["scale"], args["force_overwrite"], args["delete"])
+                # output_file = get_output_file(file_path, args["suffix"], args["out"])
+                # recode_with_ffmpeg(
+                #     file_path,
+                #     output_file,
+                #     audio_bitrate=args["abr"],
+                #     scale=args["scale"],
+                #     force_overwrite=args["force_overwrite"]
+                # )        
     else:
         logger.error(f"Error: Input path '{args['in']}' is neither a file nor a directory.")
         exit(1)

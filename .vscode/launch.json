@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "recode.py",
             "console": "integratedTerminal",
-            "args": ["D:/Series/DragonBall/DragonBall - S01E001 - The Secret of the Dragon Balls.mkv"]
+            "args": ["VID_20140311_130231.mp4", "--d"]
         }
     ]
 }

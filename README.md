@@ -8,6 +8,7 @@
 - Supports single files or entire directories
 - Customizable audio bitrate and video scaling (e.g., 1080p, 720p)
 - Overwrite control for output files
+- Optionally delete input files after successful recoding with `--d`
 - Detailed logging to `recode.log` and the console
 
 ## Requirements
@@ -44,7 +45,7 @@
 ### Basic Command
 
 ```sh
-python recode.py <input_file_or_directory> [--t OUTPUT_PATH] [--scale SCALE] [--abr AUDIO_BITRATE] [--no-overwrite]
+python recode.py <input_file_or_directory> [--t OUTPUT_PATH] [--scale SCALE] [--abr AUDIO_BITRATE] [--no-overwrite] [--d]
 ```
 
 ### Arguments
@@ -54,6 +55,7 @@ python recode.py <input_file_or_directory> [--t OUTPUT_PATH] [--scale SCALE] [--
 - `--scale`: Video scale, e.g., `1080p` or `720p`. If omitted, keeps original resolution.
 - `--abr`: Audio bitrate (default: `192k`).
 - `--no-overwrite`: Do not overwrite output file if it exists.
+- `--d`: **Delete input file(s) after successful recoding.**
 
 ### Examples
 
@@ -72,6 +74,11 @@ python recode.py "D:/Videos/ToConvert" --scale 1080p --abr 192k --t "D:/Videos/C
 python recode.py "input.mkv" --t "output.mp4"
 ```
 
+**Recoding and deleting input file after success:**
+```sh
+python recode.py "input.mkv" --scale 720p --d
+```
+
 ## Logging
 
 - All actions and errors are logged to both the console and `recode.log` in the project directory.
@@ -88,10 +95,10 @@ pytest
 
 - Make sure FFmpeg is installed and accessible. You can set the path in `recode.py` via the `FFMPEG_EXECUTABLE` variable.
 - The script will skip files that do not exist or are not valid video files.
-- If no output file is specified, it will default to the input file with .mp4 extension
-- If -t target dir is specified, it will use that directory
-- If -t target dir is not specified, it will use the same directory as the input file 
-
+- If no output file is specified, it will default to the input file with .mp4 extension.
+- If `-t` target dir is specified, it will use that directory.
+- If `-t` target dir is not specified, it will use the same directory as the input file.
+- Use `--d` to delete input files after successful recoding.
 
 ## License
 
