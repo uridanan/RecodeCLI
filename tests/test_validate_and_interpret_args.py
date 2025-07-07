@@ -14,7 +14,9 @@ def test_validate_and_interpret_args_valid_file(tmp_path):
         t=None,
         scale="1080p",
         abr="128k",
-        force_overwrite=True
+        force_overwrite=True,
+        delete_input=False,
+        surround=False
     )
 
     result = validate_and_interpret_args(args)

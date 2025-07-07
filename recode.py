@@ -109,6 +109,8 @@ def parse_arguments():
                         help="Do not overwrite output file if it exists (FFmpeg will prompt).")
     parser.add_argument("--d", action="store_true", dest="delete_input",
                         help="Delete source file when done.")
+    parser.add_argument("--51", action="store_true", dest="surround",
+                        help="Delete source file when done.")
     args = parser.parse_args()
     return args
 
@@ -136,6 +138,9 @@ def validate_and_interpret_args(args):
     if args.scale is not None: final_args["suffix"] += f"_{args.scale}"
     final_args["force_overwrite"] = args.force_overwrite
     final_args["delete"] = args.delete_input
+    final_args["surround"] = args.surround
+    if args.surround:
+        final_args["suffix"] = "AAC2.1"
     return final_args
 
 def get_output_file(input_file, suffix, target=None):
@@ -157,9 +162,13 @@ def get_output_file(input_file, suffix, target=None):
         # If target is None or not a valid directory, use the input file's name and directory
         output_file = input_file
         
-    # Ensure the output file has .mp4 extension
-    # Add a suffix to make sure the output file is different from the input file
-    output_file = os.path.splitext(output_file)[0] + suffix + ".mp4"
+    # If suffix is AAC2.1, replace the end of the file name starting at AAC5.1
+    if suffix == "AAC2.1":
+        if output_file.lower().find("aac5.1") != -1:
+            output_file = output_file[:output_file.lower().find("aac5.1")] + suffix + ".mp4"
+    else:
+        # If suffix is not AAC2.1, just add the suffix to the file name
+        output_file = os.path.splitext(output_file)[0] + suffix + ".mp4"    
 
     return output_file
 
@@ -179,6 +188,29 @@ def recode_video(file_in, file_out, abr, suffix, scale=None, force_overwrite=Tru
             logger.info(f"Deleted input file: {file_in}")
         except Exception as e:
             logger.error(f"Error deleting input file {file_in}: {e}")
+
+    # Move and rename subtitles file 
+    # Find the subtitle file: input_file.srt or input_file.en.srt or input_file-en.srt or input_file.sub or input_file.en.sub  
+    move_and_rename_subtitles(file_in, output_file)
+
+
+def move_and_rename_subtitles(input_file, output_file):
+    """
+    Finds subtitle files associated with the input video file.
+    Looks for .srt or .sub files with the same base name as the input file.
+    Returns a list of found subtitle files.
+    """
+    base_name_src = os.path.splitext(input_file)[0]
+    base_name_tgt = os.path.splitext(output_file)[0]
+    for ext in ['.srt', '.en.srt', '-en.srt', '.heb.srt', '.sub']:
+        subtitle_file_src = base_name_src + ext
+        subtitle_file_tgt = base_name_tgt + ext
+        if os.path.exists(subtitle_file_src):
+            try:
+                os.rename(subtitle_file_src, subtitle_file_tgt)
+                logger.info(f"Renamed subtitle file from {subtitle_file_src} to {subtitle_file_tgt}")   
+            except Exception as e:
+                logger.error(f"Error renaming subtitle file {subtitle_file_src} to {subtitle_file_tgt}: {e}")
 
 
 

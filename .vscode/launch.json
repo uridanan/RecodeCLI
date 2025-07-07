@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "recode.py",
             "console": "integratedTerminal",
-            "args": ["VID_20140311_130231.mp4", "--d"]
+            "args": ["Vashti_002_AAC5.1_192k.mp4", "--d", "--51"],
         }
     ]
 }

@@ -35,3 +35,25 @@ def test_get_output_file_with_no_target(tmp_path):
         assert result.startswith(str(tmp_path))
         assert result.endswith("_recode.mp4")
         assert os.path.basename(result) == "input_recode.mp4"
+
+def test_get_output_file_suffix_aac21(tmp_path):
+    # Case where filename contains 'AAC5.1'
+    input_file = tmp_path / "video_AAC5.1.mkv"
+    input_file.write_text("dummy")
+    suffix = "AAC2.1"
+    result = get_output_file(str(input_file), suffix)
+    assert result.endswith("AAC2.1.mp4")
+    assert "AAC5.1" not in result
+    assert "AAC2.1" in result
+
+    # Case where filename contains 'AAC5.1'
+    input_file = tmp_path / "Vashti_002_AAC5.1_192k.mp4"
+    input_file.write_text("dummy")
+    suffix = "AAC2.1"
+    result = get_output_file(str(input_file), suffix)
+    assert result.endswith("AAC2.1.mp4")
+    assert "AAC5.1" not in result
+    assert "AAC2.1" in result 
+
+    # Case where filename does not contain 'AAC5.1' is irrelevant.
+    # We wouldn't replace it with AAC2.1 but it could have been in the filename to begin with.
