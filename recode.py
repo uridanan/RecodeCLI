@@ -6,7 +6,6 @@ import logging
 
 
 # TODO
-# Debug post processing actions such as rename and delete when the recode fails
 # Add modes for AMF and libx265?
 #   I've managed to get AMF to produce good quality with faster speed and smaller size
 #   libx265 gives smaller files, but takes longer. Check if it works with Emby
@@ -69,6 +68,10 @@ class RecodeCLI:
         command = [
             "ffmpeg",
             "-i", input_file,
+            
+            # Explicitly set the pixel format to 8-bit YUV420P
+            "-pix_fmt", "yuv420p",
+
             "-c:v", "h264_amf",
             "-quality", "balanced",
             
