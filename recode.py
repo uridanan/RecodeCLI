@@ -41,6 +41,7 @@ class RecodeCLI:
         self.delete_input = args.delete_input
         self.surround = args.surround
         self.suffix = self._determine_suffix(args)
+        self.codec = args.c.lower()
     
     def _determine_suffix(self, args):
         if args.surround:
@@ -50,52 +51,24 @@ class RecodeCLI:
             suffix += f"_{args.scale}"
         return suffix
 
-    def recode_with_ffmpeg(self, input_file, output_file):
-        if not os.path.exists(input_file):
-            logger.error(f"Error: Input file not found at {input_file}")
-            return
-
-        video_extensions = ('.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv', '.webm', '.mpeg', '.mpg', '.m4v')
-        if not input_file.lower().endswith(video_extensions):
-            logger.debug(f"Skipped: {input_file} is not a recognized video file.")
-            return
-
-        # The updated command to use VBR for file size control
-        target_bitrate = "2M"  # You can adjust this value to control the file size
-        max_bitrate = "3M"     # A reasonable maxrate is often 1.5x the target bitrate
-        buffer_size = "3M"     # Usually the same as maxrate
-
+    def _get_command(self, input_file, output_file):
         command = [
             "ffmpeg",
             "-i", input_file,
-            
-            # Explicitly set the pixel format to 8-bit YUV420P
-            "-pix_fmt", "yuv420p",
-
-            "-c:v", "h264_amf",
-            "-quality", "balanced",
-            
-            # Rate control options for AMF
-            "-rc", "vbr_peak",
-            "-b:v", target_bitrate,
-            "-maxrate", max_bitrate,
-            "-bufsize", buffer_size, 
-            
-            "-c:a", "aac",
-            "-ac", "2",
-            "-b:a", self.abr
         ]
-
-        # Keep as reference if I want to go back to libx264 or libx265
-        libx264_command = [
-            "ffmpeg",
-            "-i", input_file,
-            "-c:v", "libx264",
-            "-crf", "23",
-            "-preset", "medium",
+        
+        if self.codec == "amf":
+            command = command + self._amf()            
+        elif self.codec == "libx264":
+            command = command + self._libx264()
+        else: # self.codec == "libx265"
+            command = command + self._libx265()
+        
+        # Sound codec and bitrate, always use AAC 2.1
+        command = command + [
             "-c:a", "aac",
             "-ac", "2",
-            "-b:a", self.abr
+            "-b:a", self.abr,
         ]
 
         if self.scale is not None:
@@ -107,6 +80,55 @@ class RecodeCLI:
 
         if self.force_overwrite:
             command.insert(1, "-y")
+
+        return command
+        
+    def _amf(self):
+         # The updated command to use VBR for file size control
+        target_bitrate = "2M"  # You can adjust this value to control the file size
+        max_bitrate = "3M"     # A reasonable maxrate is often 1.5x the target bitrate
+        buffer_size = "3M"     # Usually the same as maxrate
+
+        amf_command = [                       
+            "-pix_fmt", "yuv420p", # Explicitly set the pixel format to 8-bit YUV420P immediately after input
+            "-c:v", "h264_amf",
+            "-quality", "balanced",
+            
+            # Rate control options for AMF
+            "-rc", "vbr_peak",
+            "-b:v", target_bitrate,
+            "-maxrate", max_bitrate,
+            "-bufsize", buffer_size, 
+        ]   
+        return amf_command
+    
+    def _libx264(self):
+        libx264_command = [
+            "-c:v", "libx264",
+            "-crf", "23",
+            "-preset", "medium",
+        ]
+        return libx264_command
+    
+    def _libx265(self):
+        libx265_command = [
+            "-c:v", "libx265",
+            "-crf", "28",
+            "-preset", "medium",
+        ]
+        return libx265_command
+        
+    def recode_with_ffmpeg(self, input_file, output_file):
+        if not os.path.exists(input_file):
+            logger.error(f"Error: Input file not found at {input_file}")
+            return
+
+        video_extensions = ('.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv', '.webm', '.mpeg', '.mpg', '.m4v')
+        if not input_file.lower().endswith(video_extensions):
+            logger.debug(f"Skipped: {input_file} is not a recognized video file.")
+            return
+
+        command = self._get_command(input_file, output_file)
 
         logger.debug(f"Starting recoding for: {input_file}")
         logger.debug(f"Output file will be: {output_file}")
@@ -201,6 +223,8 @@ def parse_arguments():
                         help="Delete source file when done.")
     parser.add_argument("--51", action="store_true", dest="surround",
                         help="Mark output as surround (AAC 5.1) in the filename.")
+    parser.add_argument("--c", default="amf",
+                        help="Video codec to use (default: 'amf'). Options: 'amf', 'libx264', 'libx265'.")
     args = parser.parse_args()
     return args
 
@@ -208,3 +232,8 @@ if __name__ == "__main__":
     args = parse_arguments()
     cli = RecodeCLI(args)
     cli.run()
+
+
+
+# Example usage:
+# python c:\\Github\\RecodeCLI\\recode.py "D:\Downloads\Karate Kid Legends.AAC5.1-[YTS.MX].mp4" --t D:\Movies\ --abr 256k --51
