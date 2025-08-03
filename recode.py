@@ -4,6 +4,13 @@ import time
 import argparse
 import logging
 
+
+# TODO
+# Debug post processing actions such as rename and delete when the recode fails
+# Add modes for AMF and libx265?
+#   I've managed to get AMF to produce good quality with faster speed and smaller size
+#   libx265 gives smaller files, but takes longer. Check if it works with Emby
+
 # Set up logger to output to a file
 logging.basicConfig(
     level=logging.INFO,
@@ -54,7 +61,30 @@ class RecodeCLI:
             logger.debug(f"Skipped: {input_file} is not a recognized video file.")
             return
 
+        # The updated command to use VBR for file size control
+        target_bitrate = "2M"  # You can adjust this value to control the file size
+        max_bitrate = "3M"     # A reasonable maxrate is often 1.5x the target bitrate
+        buffer_size = "3M"     # Usually the same as maxrate
+
         command = [
+            "ffmpeg",
+            "-i", input_file,
+            "-c:v", "h264_amf",
+            "-quality", "balanced",
+            
+            # Rate control options for AMF
+            "-rc", "vbr_peak",
+            "-b:v", target_bitrate,
+            "-maxrate", max_bitrate,
+            "-bufsize", buffer_size, 
+            
+            "-c:a", "aac",
+            "-ac", "2",
+            "-b:a", self.abr
+        ]
+
+        # Keep as reference if I want to go back to libx264 or libx265
+        libx264_command = [
             "ffmpeg",
             "-i", input_file,
             "-c:v", "libx264",
@@ -64,6 +94,7 @@ class RecodeCLI:
             "-ac", "2",
             "-b:a", self.abr
         ]
+
         if self.scale is not None:
             command.append("-vf")
             command.append("scale=" + self.scale)
@@ -86,13 +117,16 @@ class RecodeCLI:
             end = time.time()
             elapsed_time = format_time(end - start)
             logger.info(f"Recoding completed in: {elapsed_time}")
+            return True
         except subprocess.CalledProcessError as e:
             logger.error(f"Error during FFmpeg recoding for {input_file}:")
             logger.error(f"Command: {' '.join(e.cmd)}")
             logger.error(e.stderr.decode() if e.stderr else "")
+            return False
         except FileNotFoundError:
             logger.error("Error: FFmpeg executable not found.")
             logger.error("Please ensure FFmpeg is installed and its executable is in your system's PATH.")
+            return False
 
     def get_output_file(self, input_file, target=None):
         output_file = ""
@@ -115,14 +149,14 @@ class RecodeCLI:
 
     def recode_video(self, file_in, file_out):
         output_file = self.get_output_file(file_in, file_out)
-        self.recode_with_ffmpeg(file_in, output_file)
-        if self.delete_input:
-            try:
-                os.remove(file_in)
-                logger.info(f"Deleted input file: {file_in}")
-            except Exception as e:
-                logger.error(f"Error deleting input file {file_in}: {e}")
-        self.move_and_rename_subtitles(file_in, output_file)
+        if self.recode_with_ffmpeg(file_in, output_file):
+            if self.delete_input:
+                try:
+                    os.remove(file_in)
+                    logger.info(f"Deleted input file: {file_in}")
+                except Exception as e:
+                    logger.error(f"Error deleting input file {file_in}: {e}")
+            self.move_and_rename_subtitles(file_in, output_file)
 
     def move_and_rename_subtitles(self, input_file, output_file):
         base_name_src = os.path.splitext(input_file)[0]
