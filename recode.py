@@ -9,6 +9,8 @@ import logging
 # Add modes for AMF and libx265?
 #   I've managed to get AMF to produce good quality with faster speed and smaller size
 #   libx265 gives smaller files, but takes longer. Check if it works with Emby
+# Prequisite: winget install ffmpeg
+#   https://www.gyan.dev/ffmpeg/builds/
 
 # Set up logger to output to a file
 logging.basicConfig(
@@ -58,7 +60,9 @@ class RecodeCLI:
         ]
         
         if self.codec == "amf":
-            command = command + self._amf()            
+            command = command + self._amf()
+        elif self.codec == "hevc_qsv":
+            command = command + self._hevc_qsv()
         elif self.codec == "libx264":
             command = command + self._libx264()
         else: # self.codec == "libx265"
@@ -117,6 +121,20 @@ class RecodeCLI:
             "-preset", "medium",
         ]
         return libx265_command
+
+    def _hevc_qsv(self):
+        hevc_qsv_command = [
+            "-c:v", "hevc_qsv",
+            "-preset", "slow", 
+            "-global_quality:v", "20",     # 18–22 is usually excellent; lower = better quality / bigger file
+            "-look_ahead", "1",            # enables look-ahead for better rate control (ICQ mode)
+            "-extbrc", "1",                # required for look-ahead on some generations
+            "-look_ahead_depth", "40",     # optional: higher = better quality, up to ~100
+            "-profile:v", "main10",        # 10-bit output (better for HDR / gradients)
+            "-pix_fmt", "p010le",          # required for 10-bit
+            "-c:s", "copy"
+        ]
+        return hevc_qsv_command
         
     def recode_with_ffmpeg(self, input_file, output_file):
         if not os.path.exists(input_file):
@@ -223,8 +241,8 @@ def parse_arguments():
                         help="Delete source file when done.")
     parser.add_argument("--51", action="store_true", dest="surround",
                         help="Mark output as surround (AAC 5.1) in the filename.")
-    parser.add_argument("--c", default="amf",
-                        help="Video codec to use (default: 'amf'). Options: 'amf', 'libx264', 'libx265'.")
+    parser.add_argument("--c", default="libx265",
+                        help="Video codec to use (default: 'amf'). Options: 'amf', 'hevc_qsv', 'libx264', 'libx265'.")
     args = parser.parse_args()
     return args
 
@@ -236,4 +254,4 @@ if __name__ == "__main__":
 
 
 # Example usage:
-# python c:\\Github\\RecodeCLI\\recode.py "D:\Downloads\Karate Kid Legends.AAC5.1-[YTS.MX].mp4" --t D:\Movies\ --abr 256k --51
+# python c:\\Github\\RecodeCLI\\recode.py "D:\Downloads\Karate Kid Legends.AAC5.1-[YTS.MX].mp4" --t D:\Movies\ --abr 256k --51 --c hevc_qsv
