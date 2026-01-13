@@ -43,17 +43,35 @@ function Process-VideoFile {
 }
 
 # Check if ContentPath is a file or directory
-if (Test-Path -Path $ContentPath -PathType Leaf) {
+if ([string]::IsNullOrWhiteSpace($ContentPath)) {
+    Add-Content -Path $logFile -Value "ERROR: ContentPath is empty"
+} elseif (Test-Path -LiteralPath $ContentPath -PathType Leaf) {
     # Single file torrent
     Process-VideoFile -FilePath $ContentPath
-} elseif (Test-Path -Path $ContentPath -PathType Container) {
+} elseif (Test-Path -LiteralPath $ContentPath -PathType Container) {
     # Multi-file torrent - find all video files
     Add-Content -Path $logFile -Value "Scanning directory for videos..."
-    Get-ChildItem -Path $ContentPath -Recurse -File | ForEach-Object {
+    Get-ChildItem -LiteralPath $ContentPath -Recurse -File | ForEach-Object {
         Process-VideoFile -FilePath $_.FullName
     }
 } else {
-    Add-Content -Path $logFile -Value "ERROR: Path not found: $ContentPath"
+    # Path doesn't exist yet - wait and retry
+    Add-Content -Path $logFile -Value "Path not found, waiting 2 seconds..."
+    Start-Sleep -Seconds 2
+    
+    if (Test-Path -LiteralPath $ContentPath -PathType Leaf) {
+        Process-VideoFile -FilePath $ContentPath
+    } elseif (Test-Path -LiteralPath $ContentPath -PathType Container) {
+        Add-Content -Path $logFile -Value "Scanning directory for videos..."
+        Get-ChildItem -LiteralPath $ContentPath -Recurse -File | ForEach-Object {
+            Process-VideoFile -FilePath $_.FullName
+        }
+    } else {
+        Add-Content -Path $logFile -Value "ERROR: Path still not found after wait: $ContentPath"
+    }
 }
 
 Add-Content -Path $logFile -Value "[$timestamp] ===== Script finished =====`n"
+
+Write-Host "`nScript finished. Press any key to close..."
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
