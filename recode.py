@@ -43,13 +43,10 @@ class RecodeCLI:
         self.abr = args.abr
         self.force_overwrite = args.force_overwrite
         self.delete_input = args.delete_input
-        self.surround = args.surround
         self.suffix = self._determine_suffix(args)
         self.codec = args.c.lower()
     
     def _determine_suffix(self, args):
-        if args.surround:
-            return "AAC2.1"
         suffix = f"_{args.abr}"
         if args.scale in ["1080p", "720p"]:
             suffix += f"_{args.scale}"
@@ -182,14 +179,12 @@ class RecodeCLI:
             output_file = os.path.join(target, os.path.basename(input_file))
         else:
             output_file = input_file
-
-        if suffix == "AAC2.1":
-            if output_file.lower().find("aac5.1") != -1:
-                output_file = output_file[:output_file.lower().find("aac5.1")] + suffix + ".mp4"
-            else:
-                output_file = os.path.splitext(output_file)[0] + suffix + ".mp4"
+    
+        if output_file.lower().find("aac5.1") != -1:
+            output_file = output_file[:output_file.lower().find("aac5.1")] + suffix + ".mp4"
         else:
             output_file = os.path.splitext(output_file)[0] + suffix + ".mp4"
+    
         return output_file
 
     def recode_video(self, file_in, file_out):
@@ -241,9 +236,7 @@ def parse_arguments():
                         help="Do not overwrite output file if it exists (FFmpeg will prompt).")
     parser.add_argument("--d", action="store_true", dest="delete_input",
                         help="Delete source file when done.")
-    parser.add_argument("--51", action="store_true", dest="surround",
-                        help="Mark output as surround (AAC 5.1) in the filename.")
-    parser.add_argument("--c", default="libx265",
+    parser.add_argument("--c", default="hevc_qsv",
                         help="Video codec to use (default: 'amf'). Options: 'amf', 'hevc_qsv', 'libx264', 'libx265'.")
     args = parser.parse_args()
     return args

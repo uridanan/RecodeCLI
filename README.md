@@ -47,7 +47,7 @@
 ### Basic Command
 
 ```sh
-python recode.py <input_file_or_directory> [--t OUTPUT_PATH] [--scale SCALE] [--abr AUDIO_BITRATE] [--no-overwrite] [--d] [--51]
+python recode.py <input_file_or_directory> [--t OUTPUT_PATH] [--scale SCALE] [--abr AUDIO_BITRATE] [--no-overwrite] [--d]
 ```
 
 ### Arguments
@@ -58,8 +58,6 @@ python recode.py <input_file_or_directory> [--t OUTPUT_PATH] [--scale SCALE] [--
 - `--abr`: Audio bitrate (default: `192k`).
 - `--no-overwrite`: Do not overwrite output file if it exists.
 - `--d`: **Delete input file(s) after successful recoding.**
-- `--51`: **Mark output as stereo (AAC2.1) if originally marked as surround (AAC 5.1).**  
-  This flag replaces `AAC5.1` with `AAC2.1` in the output filename to indicate stereo audio instead of surround audio.  
 
 ### Examples
 
@@ -83,10 +81,6 @@ python recode.py "input.mkv" --t "output.mp4"
 python recode.py "input.mkv" --scale 720p --d
 ```
 
-**Recoding and marking output as stereo (AAC 2.1):**
-```sh
-python recode.py "input_AAC5.1.mkv" --51
-```
 
 ## Logging
 
@@ -108,7 +102,6 @@ pytest
 - If `-t` target dir is specified, it will use that directory.
 - If `-t` target dir is not specified, it will use the same directory as the input file.
 - Use `--d` to delete input files after successful recoding.
-- Use `--51` to mark output as stereo (AAC 2.1) in the filename if originally marked as surround (AAC 5.1)
 
 ## License
 
